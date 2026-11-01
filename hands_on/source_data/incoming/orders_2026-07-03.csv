@@ -1,0 +1,2 @@
+order_id,customer_id,order_date,amount,status
+300005,105,2026-07-03,1500,completed
