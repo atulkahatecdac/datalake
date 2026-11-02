@@ -52,10 +52,15 @@ con.sql("DELETE FROM fact_orders")
 # ---------- Part B: an idempotent load ----------
 def load_file(path):
     """Running this once or ten times must give the same result."""
-    # TODO 1: In one transaction, delete the rows from this file, then insert them again.
-    # Hint: con.begin() ... con.commit(). If anything fails: con.rollback() and raise.
-    #       DELETE FROM fact_orders WHERE source_file = '...'
-    raise SystemExit("TODO 1: replace this line with your code")
+    # In one transaction, delete the rows from this file, then insert them again.
+    con.begin()
+    try:
+        con.execute("DELETE FROM fact_orders WHERE source_file = ?", [path.name])
+        con.execute(f"INSERT INTO fact_orders {read_query(path)}")
+        con.commit()
+    except Exception:
+        con.rollback()
+        raise
 
 
 for run in [1, 2]:
@@ -73,17 +78,27 @@ def fetch_file(path):
 
 
 def with_retries(path, attempts=4):
-    # TODO 2: Call fetch_file(path). On ConnectionError log a warning, wait, and try again.
-    #         After the last attempt, raise the error.
-    # Hint: for attempt in range(1, attempts + 1): ... time.sleep(0.2 * attempt)
-    raise SystemExit("TODO 2: replace this line with your code")
+    # Try fetch_file(path). On ConnectionError, log a warning, wait longer each time, and try again.
+    # After the last attempt, raise the error.
+    for attempt in range(1, attempts + 1):
+        try:
+            return fetch_file(path)
+        except ConnectionError as error:
+            log.warning("%s: attempt %d failed (%s)", path.name, attempt, error)
+            if attempt == attempts:
+                raise
+            time.sleep(0.2 * attempt)
 
 
 for path in INCOMING:
-    # TODO 3: Load each file with with_retries() and load_file(), and log success.
-    #         If the load fails, log an error and copy the file to QUARANTINE, then continue.
-    # Hint: try / except Exception as error / shutil.copy(path, QUARANTINE)
-    raise SystemExit("TODO 3: replace this line with your code")
+    # Load each file with with_retries() and load_file(), and log success.
+    # If the load fails, log an error and copy the file to QUARANTINE, then continue.
+    try:
+        load_file(with_retries(path))
+        log.info("%s: loaded", path.name)
+    except Exception as error:
+        log.error("%s: quarantined (%s)", path.name, str(error).splitlines()[0])
+        shutil.copy(path, QUARANTINE)
 
 print("\nFinal table:")
 con.sql("SELECT source_file, count(*) AS rows, sum(amount) AS revenue FROM fact_orders GROUP BY 1 ORDER BY 1").show()

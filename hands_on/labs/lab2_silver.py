@@ -23,18 +23,26 @@ con.sql("""
     FROM raw_orders
 """).show()
 
-# TODO 1: Count orders whose amount is negative, and orders with a date containing '/'.
-# Hint: count(*) FILTER (WHERE TRY_CAST(amount AS DOUBLE) < 0)  and  order_date LIKE '%/%'
-raise SystemExit("TODO 1: replace this line with your code")
+# Count orders whose amount is negative, and orders with a date containing '/'.
+con.sql("""
+    SELECT count(*) FILTER (WHERE TRY_CAST(amount AS DOUBLE) < 0) AS negative_amount,
+           count(*) FILTER (WHERE order_date LIKE '%/%') AS slash_dates
+    FROM raw_orders
+""").show()
 
 # ---------- Part B: clean the customers ----------
-# TODO 2: Create table customers from raw_customers:
+# Create table customers from raw_customers:
 #   - keep only distinct rows
 #   - age outside 0-120 becomes NULL
 #   - phone is masked so that only the last 2 digits show, e.g. XXXXXXXX10
-# Hint: CASE WHEN age BETWEEN 0 AND 120 THEN age END
-#       'XXXXXXXX' || right(phone, 2) AS phone
-raise SystemExit("TODO 2: replace this line with your code")
+con.sql("""
+    CREATE TABLE customers AS
+    SELECT DISTINCT customer_id, name,
+           CASE WHEN age BETWEEN 0 AND 120 THEN age END AS age,
+           city,
+           'XXXXXXXX' || right(phone, 2) AS phone
+    FROM raw_customers
+""")
 
 # ---------- Part C: clean the orders ----------
 # Fix the types once. Values that cannot be converted become NULL.
@@ -50,12 +58,17 @@ con.sql("""
     FROM raw_orders
 """)
 
-# TODO 3: Split typed_orders into two tables, so that no row is silently lost:
+# Split typed_orders into two tables, so that no row is silently lost:
 #   orders         - amount > 0 AND order_date IS NOT NULL AND the customer exists
 #   rejected_orders - all the other rows
-# Hint: customer_id IN (SELECT customer_id FROM customers)
-#       A NULL amount makes "amount > 0" NULL, so write the reject rule with COALESCE.
-raise SystemExit("TODO 3: replace this line with your code")
+# A NULL amount makes "amount > 0" NULL, so COALESCE turns it into false.
+is_valid = """
+    COALESCE(amount > 0, false)
+    AND order_date IS NOT NULL
+    AND customer_id IN (SELECT customer_id FROM customers)
+"""
+con.sql(f"CREATE TABLE orders AS SELECT * FROM typed_orders WHERE {is_valid}")
+con.sql(f"CREATE TABLE rejected_orders AS SELECT * FROM typed_orders WHERE NOT ({is_valid})")
 
 # ---------- Part D: parse the text log with regular expressions ----------
 con.sql(r"""

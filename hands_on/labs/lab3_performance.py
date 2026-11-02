@@ -25,13 +25,11 @@ print("Rows:", con.sql("SELECT count(*) FROM big_orders").fetchall()[0][0])
 
 con.sql("COPY big_orders TO 'lake/perf/orders.csv' (HEADER)")
 
-# TODO 1: Write big_orders as one Parquet file: lake/perf/orders.parquet
-# Hint: COPY table TO 'path' (FORMAT parquet)
-raise SystemExit("TODO 1: replace this line with your code")
+# Write big_orders as one Parquet file: lake/perf/orders.parquet
+con.sql("COPY big_orders TO 'lake/perf/orders.parquet' (FORMAT parquet)")
 
-# TODO 2: Write big_orders as Parquet, partitioned by year and month, to lake/perf/partitioned
-# Hint: add PARTITION_BY (year, month) inside the brackets
-raise SystemExit("TODO 2: replace this line with your code")
+# Write big_orders as Parquet, partitioned by year and month, to lake/perf/partitioned
+con.sql("COPY big_orders TO 'lake/perf/partitioned' (FORMAT parquet, PARTITION_BY (year, month))")
 
 
 def size_mb(path):
@@ -50,9 +48,11 @@ tests = {
         WHERE year = 2026 AND month = 1"""),
 }
 
-# TODO 3: Add the third test, named "Parquet + partitions", in the same format as above.
-# Hint: FROM read_parquet('lake/perf/partitioned/*/*/*.parquet', hive_partitioning=true)
-raise SystemExit("TODO 3: replace this line with your code")
+# Third layout: partitioned Parquet. Only the year=2026/month=1 folder is opened.
+tests["Parquet + partitions"] = ("lake/perf/partitioned", """
+    SELECT sum(amount)
+    FROM read_parquet('lake/perf/partitioned/*/*/*.parquet', hive_partitioning=true)
+    WHERE year = 2026 AND month = 1""")
 
 print(f"\n{'Layout':<22}{'Size MB':>10}{'Seconds':>10}{'Revenue':>18}")
 for name, (path, query) in tests.items():

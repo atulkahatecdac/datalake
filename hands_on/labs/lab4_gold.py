@@ -21,10 +21,15 @@ con.sql("""
     ORDER BY order_date
 """)
 
-# TODO 1: Create table customer_summary, with one row per customer that has a completed order:
+# Create table customer_summary, with one row per customer that has a completed order:
 #   customer_id, name, city, num_orders, total_spent
-# Hint: JOIN orders and customers USING (customer_id), then GROUP BY customer_id, name, city
-raise SystemExit("TODO 1: replace this line with your code")
+con.sql("""
+    CREATE TABLE customer_summary AS
+    SELECT customer_id, name, city, count(*) AS num_orders, sum(amount) AS total_spent
+    FROM orders JOIN customers USING (customer_id)
+    WHERE status = 'completed'
+    GROUP BY customer_id, name, city
+""")
 
 for table in ["daily_sales", "customer_summary"]:
     con.sql(f"COPY {table} TO 'lake/gold/{table}.parquet' (FORMAT parquet)")
@@ -36,12 +41,16 @@ con.sql("""
            (SELECT sum(amount) FROM orders WHERE status = 'completed') AS silver_revenue
 """).show()
 
-# TODO 2: Answer from the Gold tables: which are the 5 cities with the highest revenue?
-# Hint: SELECT city, sum(total_spent) AS revenue FROM customer_summary GROUP BY ...
-raise SystemExit("TODO 2: replace this line with your code")
+# Answered from the Gold tables: the 5 cities with the highest revenue.
+print("Top 5 cities:")
+con.sql("""
+    SELECT city, sum(total_spent) AS revenue
+    FROM customer_summary GROUP BY city ORDER BY revenue DESC LIMIT 5
+""").show()
 
-# TODO 3: Answer: who are the top 5 customers by total_spent?
-raise SystemExit("TODO 3: replace this line with your code")
+# The top 5 customers by total_spent.
+print("Top 5 customers:")
+con.sql("SELECT * FROM customer_summary ORDER BY total_spent DESC LIMIT 5").show()
 
 # Monthly revenue chart for the business team.
 monthly = con.sql("""

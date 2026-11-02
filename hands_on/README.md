@@ -36,9 +36,9 @@ Activate the environment each time you open a new terminal: `.venv\Scripts\activ
 
 Run the labs from this folder, for example `python labs/lab1_bronze.py`.
 
-Each file in `labs/` stops at the first gap with a message like `TODO 1: replace this line with your code`. Read the TODO and hint above that line, replace the line with your code, and run the file again.
+Each lab is complete, working code. Read it, run it, and compare the output with the Check line on the lab's slide. Then open the `lake` folder to see the files the lab created.
 
-**Stuck or behind?** Run the solution, for example `python solutions/lab2_silver.py`. It creates everything the next lab needs, so you can carry on from there. To start again, delete the `lake` folder.
+**Missed a lab?** Just run it, for example `python labs/lab2_silver.py`. It creates everything the next lab needs, so you can carry on from there. To start again, delete the `lake` folder.
 
 ## Schedule
 
@@ -60,4 +60,3 @@ Labs 1 to 5 build on each other, so run them in order. Lab 6 only needs `generat
 ## For the instructor
 
 - **Spark demo:** `demo_spark.py` repeats the Lab 2 order cleaning in PySpark. It needs Java and `pip install pyspark` (with `.venv` active), and only you need to run it.
-- **Changing a lab:** edit the file in `solutions/`, then run `python make_labs.py`. This overwrites `labs/`, so don't edit those files directly.
